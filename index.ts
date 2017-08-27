@@ -34,6 +34,8 @@ export interface Concat extends TypedRecord<'Concat', List<Chars | Kleene | Or |
 const Concat = factory<Concat>('Concat');
 
 export function concat(left: Re, right: Re) {
+    if (left.equals(NONE) || right.equals(NONE)) return NONE;
+
     if (left.type === 'Empty') return right;
     if (right.type === 'Empty') return left;
 
