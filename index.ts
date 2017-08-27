@@ -17,20 +17,14 @@ export type Re = Chars | Empty | Concat | Kleene | Or | And | Not;
 export interface Chars extends TypedRecord<'Chars', Set<number>> {}
 const Chars = factory<Chars>('Chars');
 
+export const NONE = Chars(Set<number>());
+
 export function chars(allowedChars: string) {
     return Chars(Set<number>().withMutations(set => {
         for (let i = 0; i < allowedChars.length; i++) {
             set.add(allowedChars.charCodeAt(i));
         }
     }));
-}
-
-function isNone(re: Re): boolean {
-    return re.type === 'Chars' && re.body.isEmpty();
-}
-
-function isSome(re: Re): boolean {
-    return re.type === 'Not' && isNone(re.body);
 }
 
 export interface Empty extends Record.Instance<{ type: 'Empty' }>, Readonly<{ type: 'Empty' }> {}
@@ -54,7 +48,7 @@ const Kleene = factory<Kleene>('Kleene');
 
 export function kleene(body: Re) {
     if (body.type === 'Empty' || body.type === 'Kleene') return body;
-    if (isNone(body)) return EMPTY;
+    if (body.equals(NONE)) return EMPTY;
     return Kleene(body);
 }
 
@@ -62,11 +56,11 @@ export interface Or extends TypedRecord<'Or', Set<Chars | Empty | Concat | Kleen
 const Or = factory<Or>('Or');
 
 export function or(left: Re, right: Re) {
-    if (isNone(left)) return right;
-    if (isNone(right)) return left;
+    if (left.equals(NONE)) return right;
+    if (right.equals(NONE)) return left;
 
-    if (isSome(left)) return left;
-    if (isSome(right)) return right;
+    if (left.equals(NOT_NONE)) return left;
+    if (right.equals(NOT_NONE)) return right;
 
     let leftSet = left.type === 'Or' ? left.body : Set.of(left);
     let rightSet = right.type === 'Or' ? right.body : Set.of(right);
@@ -78,11 +72,11 @@ export interface And extends TypedRecord<'And', Set<Chars | Empty | Concat | Kle
 const And = factory<And>('And');
 
 export function and(left: Re, right: Re) {
-    if (isNone(left)) return left;
-    if (isNone(right)) return right;
+    if (left.equals(NONE)) return left;
+    if (right.equals(NONE)) return right;
 
-    if (isSome(left)) return right;
-    if (isSome(right)) return left;
+    if (left.equals(NOT_NONE)) return right;
+    if (right.equals(NOT_NONE)) return left;
 
     let leftSet = left.type === 'And' ? left.body : Set.of(left);
     let rightSet = right.type === 'And' ? right.body : Set.of(right);
@@ -97,3 +91,5 @@ export function not(body: Re) {
     if (body.type === 'Not') return body.body;
     return Not(body);
 }
+
+export const NOT_NONE = Not(NONE);
