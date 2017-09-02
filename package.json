@@ -10,7 +10,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "immutable": "^4.0.0-rc.2"
+    "immutable": "github:facebook/immutable-js#fdec358"
   },
   "devDependencies": {
     "typescript": "^2.5.2"
