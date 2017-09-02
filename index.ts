@@ -14,13 +14,14 @@ function factory<R extends TypedRecord<string, any>>(type: R['type']) {
 	return (body: R['body']) => inner({ body }) as R;
 }
 
-export type Re = Chars | Empty | Concat | Kleene | Or | And | Not;
+export type Re = Chars | None | Empty | Concat | Kleene | Or | And | Not;
 type Class = Set<number>;
 
 export interface Chars extends TypedRecord<'Chars', Class> {}
 const Chars = factory<Chars>('Chars');
 
-export const NONE = Chars(Set());
+export interface None extends Record.Instance<{ type: 'None' }>, Readonly<{ type: 'None' }> {}
+export const NONE: None = Record({ type: 'None' as 'None' })();
 
 export function chars(allowedChars: string) {
 	return Chars(
@@ -39,7 +40,7 @@ export interface Concat extends TypedRecord<'Concat', List<Chars | Kleene | Or |
 const Concat = factory<Concat>('Concat');
 
 export function concat(left: Re, right: Re) {
-	if (left.equals(NONE) || right.equals(NONE)) return NONE;
+	if (left.type === 'None' || right.type === 'None') return NONE;
 
 	if (left.type === 'Empty') return right;
 	if (right.type === 'Empty') return left;
@@ -55,7 +56,7 @@ const Kleene = factory<Kleene>('Kleene');
 
 export function kleene(body: Re) {
 	if (body.type === 'Empty' || body.type === 'Kleene') return body;
-	if (body.equals(NONE)) return EMPTY;
+	if (body.type === 'None') return EMPTY;
 	return Kleene(body);
 }
 
@@ -63,11 +64,15 @@ export interface Or extends TypedRecord<'Or', Set<Chars | Empty | Concat | Kleen
 const Or = factory<Or>('Or');
 
 export function or(left: Re, right: Re) {
-	if (left.equals(NONE)) return right;
-	if (right.equals(NONE)) return left;
+	if (left.type === 'None') return right;
+	if (right.type === 'None') return left;
 
 	if (left.equals(NOT_NONE)) return left;
 	if (right.equals(NOT_NONE)) return right;
+
+	if (left.type === 'Chars' && right.type === 'Chars') {
+		return Chars(left.body.union(right.body));
+	}
 
 	let leftSet = left.type === 'Or' ? left.body : Set.of(left);
 	let rightSet = right.type === 'Or' ? right.body : Set.of(right);
@@ -85,11 +90,15 @@ export interface And extends TypedRecord<'And', Set<Chars | Empty | Concat | Kle
 const And = factory<And>('And');
 
 export function and(left: Re, right: Re) {
-	if (left.equals(NONE)) return left;
-	if (right.equals(NONE)) return right;
+	if (left.type === 'None') return left;
+	if (right.type === 'None') return right;
 
 	if (left.equals(NOT_NONE)) return right;
 	if (right.equals(NOT_NONE)) return left;
+
+	if (left.type === 'Chars' && right.type === 'Chars') {
+		return Chars(left.body.intersect(right.body));
+	}
 
 	let leftSet = left.type === 'And' ? left.body : Set.of(left);
 	let rightSet = right.type === 'And' ? right.body : Set.of(right);
@@ -136,10 +145,12 @@ export class Derivatives {
 
 function isNullable(re: Re): boolean {
 	switch (re.type) {
+		case 'None':
 		case 'Chars': {
 			return false;
 		}
 
+		case 'Kleene':
 		case 'Empty': {
 			return true;
 		}
@@ -147,10 +158,6 @@ function isNullable(re: Re): boolean {
 		case 'Concat':
 		case 'And': {
 			return (re.body as Collection<any, Re>).every(isNullable);
-		}
-
-		case 'Kleene': {
-			return true;
 		}
 
 		case 'Or': {
@@ -217,12 +224,10 @@ function combine(
 export function getDerivatives(re: Re): Derivatives {
 	switch (re.type) {
 		case 'Chars': {
-			if (re.equals(NONE)) {
-				return new Derivatives();
-			}
 			return new Derivatives(Map.of(EMPTY, re.body), NONE);
 		}
 
+		case 'None':
 		case 'Empty': {
 			return new Derivatives();
 		}
