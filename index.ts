@@ -1,4 +1,4 @@
-import { Set, Record, List, Collection, Seq } from 'immutable';
+import { Set, Record, List, Collection, Seq, Map } from 'immutable';
 
 interface TypedBody<S extends string, B> {
 	type: S;
@@ -72,7 +72,13 @@ export function or(left: Re, right: Re) {
 	let leftSet = left.type === 'Or' ? left.body : Set.of(left);
 	let rightSet = right.type === 'Or' ? right.body : Set.of(right);
 
-	return Or(leftSet.union(rightSet));
+	let resultSet = leftSet.union(rightSet);
+
+	if (resultSet.size === 1) {
+		return resultSet.first()!;
+	}
+
+	return Or(resultSet);
 }
 
 export interface And extends TypedRecord<'And', Set<Chars | Empty | Concat | Kleene | Or | Not>> {}
@@ -88,7 +94,13 @@ export function and(left: Re, right: Re) {
 	let leftSet = left.type === 'And' ? left.body : Set.of(left);
 	let rightSet = right.type === 'And' ? right.body : Set.of(right);
 
-	return And(leftSet.union(rightSet));
+	let resultSet = leftSet.union(rightSet);
+
+	if (resultSet.size === 1) {
+		return resultSet.first()!;
+	}
+
+	return And(resultSet);
 }
 
 export interface Not extends TypedRecord<'Not', Chars | Empty | Concat | Kleene | Or | And> {}
@@ -101,23 +113,24 @@ export function not(body: Re) {
 
 export const NOT_NONE = Not(NONE);
 
-export interface Derivative {
-	re: Re;
-	chars: Class;
-}
-
 export class Derivatives {
-	constructor(public items: List<Derivative>, public rest: Re) {}
+	constructor(public items = Map<Re, Class>(), public rest: Re = NONE) {}
+
+	withMutations(f: (add: (chars: Class, re: Re) => void) => Re) {
+		this.items = Map<Re, Class>().withMutations(map => {
+			this.rest = f((chars, re) => map.update(re, Set(), prev => chars.union(prev)));
+			map.delete(this.rest);
+		});
+		return this;
+	}
 
 	map(f: (re: Re) => Re) {
-		return new Derivatives(
-			this.items.map(({ re, chars }) => ({
-				re: f(re),
-				chars
-			})),
-
-			f(this.rest)
-		);
+		return new Derivatives().withMutations(add => {
+			for (let [re, chars] of this.items) {
+				add(chars, f(re));
+			}
+			return f(this.rest);
+		});
 	}
 }
 
@@ -150,67 +163,68 @@ function isNullable(re: Re): boolean {
 	}
 }
 
-function combine(v: Seq.Indexed<Derivatives>, initial: Re, f: (prev: Re, cur: Re) => Re): Derivatives {
-	let out = new Derivatives(List(), NONE);
-
-	(function go(
-		v: Seq.Indexed<Derivatives>,
-		inclusive: boolean,
-		chars: Set<number>,
-		re: Re
-	): void {
-		if (inclusive && chars.isEmpty()) {
-			return;
-		}
-
-		if (v.isEmpty()) {
-			if (inclusive) {
-				out.items = out.items.push({
-					re,
-					chars
-				});
-			} else {
-				out.rest = re;
+function combine(
+	v: Seq.Indexed<Derivatives>,
+	initial: Re,
+	f: (prev: Re, cur: Re) => Re
+): Derivatives {
+	return new Derivatives().withMutations(add =>
+		(function go(
+			v: Seq.Indexed<Derivatives>,
+			inclusive: boolean,
+			chars: Set<number>,
+			re: Re
+		): Re {
+			if (inclusive && chars.isEmpty()) {
+				return NONE;
 			}
 
-			return;
-		}
+			if (v.isEmpty()) {
+				if (inclusive) {
+					add(chars, re);
+					return NONE;
+				} else {
+					return re;
+				}
+			}
 
-		let first = v.first()!;
-		let rest = v.rest();
+			let first = v.first()!;
+			let rest = v.rest();
 
-		let allChars = Set<number>();
+			let allChars = Set<number>();
 
-		for (let item of first.items) {
-			allChars = allChars.union(item.chars);
+			for (let [ subRe, subChars ] of first.items) {
+				allChars = allChars.union(subChars);
 
-			go(
+				go(
+					rest,
+					true,
+					inclusive ? subChars.intersect(chars) : subChars.subtract(chars),
+					f(re, subRe)
+				);
+			}
+
+			return go(
 				rest,
-				true,
-				inclusive ? item.chars.intersect(chars) : item.chars.subtract(chars),
-				f(re, item.re)
+				inclusive,
+				inclusive ? chars.subtract(allChars) : chars.union(allChars),
+				f(re, first.rest)
 			);
-		}
-
-		go(
-			rest,
-			inclusive,
-			inclusive ? chars.subtract(allChars) : chars.union(allChars),
-			f(re, first.rest)
-		);
-	})(v, false, Set(), initial);
-
-	return out;
+		})(v, false, Set(), initial)
+	);
 }
 
 export function getDerivatives(re: Re): Derivatives {
 	switch (re.type) {
 		case 'Chars': {
-			return new Derivatives(List.of({ re: EMPTY, chars: re.body }), NONE);
+			if (re.equals(NONE)) {
+				return new Derivatives();
+			}
+			return new Derivatives(Map.of(EMPTY, re.body), NONE);
 		}
 
 		case 'Empty': {
-			return new Derivatives(List(), NONE);
+			return new Derivatives();
 		}
 
 		case 'Kleene': {
@@ -222,29 +236,29 @@ export function getDerivatives(re: Re): Derivatives {
 		}
 
 		case 'And': {
-			return combine(
-				re.body.valueSeq().map(getDerivatives),
-				NOT_NONE,
-				and
-			);
+			return combine(re.body.valueSeq().map(getDerivatives), NOT_NONE, and);
 		}
 
 		case 'Concat': {
 			return combine(
-				re.body.valueSeq()
-				.takeUntil((_, i) => i > 0 && isNullable(re.body.get(i - 1)!))
-				.map((item, i) => getDerivatives(item).map(re2 => re.body.valueSeq().skip(i + 1).reduce(concat, re2))),
+				re.body
+					.valueSeq()
+					.takeUntil((_, i) => i > 0 && isNullable(re.body.get(i - 1)!))
+					.map((item, i) =>
+						getDerivatives(item).map(re2 =>
+							re.body
+								.valueSeq()
+								.skip(i + 1)
+								.reduce(concat, re2)
+						)
+					),
 				NONE,
 				or
 			);
 		}
 
 		case 'Or': {
-			return combine(
-				re.body.valueSeq().map(getDerivatives),
-				NONE,
-				or
-			);
+			return combine(re.body.valueSeq().map(getDerivatives), NONE, or);
 		}
 	}
 }
