@@ -200,7 +200,7 @@ function combine(
 
 			let allChars = Set<number>();
 
-			for (let [ subRe, subChars ] of first.items) {
+			for (let [subRe, subChars] of first.items) {
 				allChars = allChars.union(subChars);
 
 				go(
