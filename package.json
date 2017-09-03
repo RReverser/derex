@@ -1,13 +1,13 @@
 {
   "name": "derex",
   "version": "1.0.0",
-  "description": "",
+  "description": "Derivatives-based regexp to DFA compiler",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["regex", "regexp", "derivatives", "dfa"],
+  "author": "Ingvar Stepanyan <me@rreverser.com> (https://rreverser.com/)",
   "license": "MIT",
   "dependencies": {
     "immutable": "github:facebook/immutable-js#fdec358"
