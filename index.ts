@@ -112,7 +112,8 @@ export function and(left: Re, right: Re) {
 	return And(resultSet);
 }
 
-export interface Not extends TypedRecord<'Not', None | Chars | Empty | Concat | Kleene | Or | And> {}
+export interface Not
+	extends TypedRecord<'Not', None | Chars | Empty | Concat | Kleene | Or | And> {}
 const Not = factory<Not>('Not');
 
 export function not(body: Re) {
