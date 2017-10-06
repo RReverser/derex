@@ -6,7 +6,7 @@ interface TypedBody<S extends string, B> {
 }
 
 interface TypedRecord<S extends string, B>
-	extends Record.Instance<TypedBody<S, B>>,
+	extends Record<TypedBody<S, B>>,
 		Readonly<TypedBody<S, B>> {}
 
 function factory<R extends TypedRecord<string, any>>(type: R['type']) {
@@ -20,7 +20,7 @@ type Class = Set<number>;
 export interface Chars extends TypedRecord<'Chars', Class> {}
 const Chars = factory<Chars>('Chars');
 
-export interface None extends Record.Instance<{ type: 'None' }>, Readonly<{ type: 'None' }> {}
+export interface None extends Record<{ type: 'None' }>, Readonly<{ type: 'None' }> {}
 export const NONE: None = Record({ type: 'None' as 'None' })();
 
 export function chars(allowedChars: string) {
@@ -33,7 +33,7 @@ export function chars(allowedChars: string) {
 	);
 }
 
-export interface Empty extends Record.Instance<{ type: 'Empty' }>, Readonly<{ type: 'Empty' }> {}
+export interface Empty extends Record<{ type: 'Empty' }>, Readonly<{ type: 'Empty' }> {}
 export const EMPTY: Empty = Record({ type: 'Empty' as 'Empty' })();
 
 export interface Concat extends TypedRecord<'Concat', List<Chars | Kleene | Or | And | Not>> {}
