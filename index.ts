@@ -39,16 +39,37 @@ export const EMPTY: Empty = Record({ type: 'Empty' as 'Empty' })();
 export interface Concat extends TypedRecord<'Concat', List<Chars | Kleene | Or | And | Not>> {}
 const Concat = factory<Concat>('Concat');
 
-export function concat(left: Re, right: Re) {
-	if (left.type === 'None' || right.type === 'None') return NONE;
+export function concat(...regexps: Re[]) {
+	let newList = List<Chars | Kleene | Or | And | Not>();
 
-	if (left.type === 'Empty') return right;
-	if (right.type === 'Empty') return left;
+	for (let re of regexps) {
+		switch (re.type) {
+			case 'None': {
+				return NONE;
+			}
+			case 'Empty': {
+				break;
+			}
+			case 'Concat': {
+				newList = newList.concat(re.body);
+				break;
+			}
+			default: {
+				newList = newList.push(re);
+				break;
+			}
+		}
+	}
 
-	let leftList = left.type === 'Concat' ? left.body : List.of(left);
-	let rightList = right.type === 'Concat' ? right.body : List.of(right);
+	if (newList.size === 0) {
+		return NONE;
+	}
 
-	return Concat(leftList.concat(rightList));
+	if (newList.size === 1) {
+		return newList.first()!;
+	}
+
+	return Concat(newList);
 }
 
 export interface Kleene extends TypedRecord<'Kleene', Chars | Concat | Or | And | Not> {}
@@ -63,53 +84,90 @@ export function kleene(body: Re) {
 export interface Or extends TypedRecord<'Or', Set<Chars | Empty | Concat | Kleene | And | Not>> {}
 const Or = factory<Or>('Or');
 
-export function or(left: Re, right: Re) {
-	if (left.type === 'None') return right;
-	if (right.type === 'None') return left;
+export function or(...regexps: Re[]) {
+	let newSet = Set<Chars | Empty | Concat | Kleene | And | Not>();
+	let chars = Set<number>();
 
-	if (left.equals(NOT_NONE)) return left;
-	if (right.equals(NOT_NONE)) return right;
-
-	if (left.type === 'Chars' && right.type === 'Chars') {
-		return Chars(left.body.union(right.body));
+	for (let re of regexps) {
+		switch (re.type) {
+			case 'None': {
+				break;
+			}
+			case 'Chars': {
+				chars = chars.union(re.body);
+				break;
+			}
+			case 'Or': {
+				newSet = newSet.union(re.body);
+				break;
+			}
+			default: {
+				if (re.equals(NOT_NONE)) {
+					return NOT_NONE;
+				}
+				newSet = newSet.add(re);
+				break;
+			}
+		}
 	}
 
-	let leftSet = left.type === 'Or' ? left.body : Set.of(left);
-	let rightSet = right.type === 'Or' ? right.body : Set.of(right);
-
-	let resultSet = leftSet.union(rightSet);
-
-	if (resultSet.size === 1) {
-		return resultSet.first()!;
+	if (!chars.isEmpty()) {
+		newSet = newSet.add(Chars(chars));
 	}
 
-	return Or(resultSet);
+	if (newSet.size === 0) {
+		return NONE;
+	}
+
+	if (newSet.size === 1) {
+		return newSet.first()!;
+	}
+
+	return Or(newSet);
 }
 
 export interface And extends TypedRecord<'And', Set<Chars | Empty | Concat | Kleene | Or | Not>> {}
 const And = factory<And>('And');
 
-export function and(left: Re, right: Re) {
-	if (left.type === 'None') return left;
-	if (right.type === 'None') return right;
+export function and(...regexps: Re[]) {
+	let newSet = Set<Chars | Empty | Concat | Kleene | Or | Not>();
+	let chars = Set<number>();
 
-	if (left.equals(NOT_NONE)) return right;
-	if (right.equals(NOT_NONE)) return left;
-
-	if (left.type === 'Chars' && right.type === 'Chars') {
-		return Chars(left.body.intersect(right.body));
+	for (let re of regexps) {
+		switch (re.type) {
+			case 'None': {
+				return NONE;
+			}
+			case 'Chars': {
+				chars = chars.intersect(re.body);
+				break;
+			}
+			case 'And': {
+				newSet = newSet.union(re.body);
+				break;
+			}
+			default: {
+				if (!re.equals(NOT_NONE)) {
+					newSet = newSet.add(re);
+				}
+				break;
+			}
+		}
 	}
 
-	let leftSet = left.type === 'And' ? left.body : Set.of(left);
-	let rightSet = right.type === 'And' ? right.body : Set.of(right);
-
-	let resultSet = leftSet.union(rightSet);
-
-	if (resultSet.size === 1) {
-		return resultSet.first()!;
+	if (!chars.isEmpty()) {
+		newSet = newSet.add(Chars(chars));
 	}
 
-	return And(resultSet);
+	if (newSet.size === 0) {
+		return NONE;
+	}
+
+	if (newSet.size === 1) {
+		return newSet.first()!;
+	}
+
+	return And(newSet);
 }
 
 export interface Not
@@ -252,10 +310,7 @@ export function getDerivatives(re: Re): Derivatives {
 					.takeUntil((_, i) => i > 0 && !isNullable(re.body.get(i - 1)!))
 					.map((item, i) =>
 						getDerivatives(item).map(re2 =>
-							re.body
-								.valueSeq()
-								.skip(i + 1)
-								.reduce(concat, re2)
+							concat(...re.body.valueSeq().skip(i + 1), re2)
 						)
 					),
 				NONE,
@@ -306,11 +361,8 @@ export function toDfa(re: Re) {
 }
 
 let sampleRe = or(
-	or(
-		concat(concat(chars('a'), chars('bc')), chars('1')),
-		concat(concat(chars('a'), chars('bd')), chars('1'))
-	),
-	concat(concat(chars('a'), kleene(chars('b'))), chars('1'))
+	or(concat(chars('a'), chars('bc'), chars('1')), concat(chars('a'), chars('bd'), chars('1'))),
+	concat(chars('a'), kleene(chars('b')), chars('1'))
 );
 
 console.log(toDfa(sampleRe));
