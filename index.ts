@@ -249,7 +249,7 @@ export function getDerivatives(re: Re): Derivatives {
 			return combine(
 				re.body
 					.valueSeq()
-					.takeUntil((_, i) => i > 0 && isNullable(re.body.get(i - 1)!))
+					.takeUntil((_, i) => i > 0 && !isNullable(re.body.get(i - 1)!))
 					.map((item, i) =>
 						getDerivatives(item).map(re2 =>
 							re.body
