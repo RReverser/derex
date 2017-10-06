@@ -333,6 +333,10 @@ export function toDfa(re: Re) {
 				return -1;
 			}
 
+			if (re.type === 'Empty') {
+				return -2;
+			}
+
 			let index = regexps.indexOf(re);
 
 			if (index >= 0) {
