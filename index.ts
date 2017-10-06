@@ -268,3 +268,49 @@ export function getDerivatives(re: Re): Derivatives {
 		}
 	}
 }
+
+export function toDfa(re: Re) {
+	let regexps = List<Re>().asMutable();
+
+	return Map<number, Map<number, string | null>>().withMutations(dfa => {
+		(function getIndex(re: Re): number {
+			if (re.type === 'None') {
+				return -1;
+			}
+
+			let index = regexps.indexOf(re);
+
+			if (index >= 0) {
+				return index;
+			}
+
+			index = regexps.size;
+			regexps.push(re);
+
+			let derivatives = getDerivatives(re);
+
+			dfa.set(
+				index,
+				Map<number, string | null>().withMutations(map => {
+					for (let [re, chars] of derivatives.items) {
+						map.set(getIndex(re), String.fromCharCode(...chars));
+					}
+
+					map.set(getIndex(derivatives.rest), null);
+				})
+			);
+
+			return index;
+		})(re);
+	});
+}
+
+let sampleRe = or(
+	or(
+		concat(concat(chars('a'), chars('bc')), chars('1')),
+		concat(concat(chars('a'), chars('bd')), chars('1'))
+	),
+	concat(concat(chars('a'), kleene(chars('b'))), chars('1'))
+);
+
+console.log(toDfa(sampleRe));
