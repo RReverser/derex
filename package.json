@@ -15,9 +15,13 @@
   "author": "Ingvar Stepanyan <me@rreverser.com> (https://rreverser.com/)",
   "license": "MIT",
   "dependencies": {
+    "escodegen": "^1.9.0",
     "immutable": "^4.0.0-rc.7"
   },
   "devDependencies": {
+    "@types/escodegen": "0.0.6",
+    "@types/estree": "0.0.37",
+    "@types/node": "^8.0.33",
     "typescript": "^2.5.3"
   }
 }

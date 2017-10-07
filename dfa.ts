@@ -1,11 +1,15 @@
 import { Map } from 'immutable';
-import { Re } from './re';
+import { Re, Class } from './re';
 import { Derivatives } from './derivatives';
 
-export function toDfa(re: Re) {
+export type Transitions = Map<number, Class | null>;
+
+export type Dfa = Map<number, Transitions>;
+
+export function toDfa(re: Re): Dfa {
 	let regexps = Map<Re, number>().asMutable();
 
-	return Map<number, Map<number, string | null>>().withMutations(dfa => {
+	return Map<number, Transitions>().withMutations(dfa => {
 		(function getIndex(re: Re): number {
 			if (re.type === 'None') {
 				return -1;
@@ -28,9 +32,9 @@ export function toDfa(re: Re) {
 
 			dfa.set(
 				index,
-				Map<number, string | null>().withMutations(map => {
+				Map<number, Class | null>().withMutations(map => {
 					for (let [re, chars] of derivatives.items) {
-						map.set(getIndex(re), String.fromCharCode(...chars));
+						map.set(getIndex(re), chars);
 					}
 
 					map.set(getIndex(derivatives.rest), null);
