@@ -54,7 +54,7 @@ export class Derivatives {
 						.takeUntil((_, i) => i > 0 && !isNullable(re.body.get(i - 1)!))
 						.map((item, i) =>
 							Derivatives.fromRe(item).map(re2 =>
-								concat(...re.body.valueSeq().skip(i + 1), re2)
+								concat(re2, ...re.body.valueSeq().skip(i + 1))
 							)
 						),
 					NONE,
