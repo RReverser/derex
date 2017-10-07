@@ -63,7 +63,7 @@ export function concat(...regexps: Re[]) {
 	}
 
 	if (newList.size === 0) {
-		return NONE;
+		return EMPTY;
 	}
 
 	if (newList.size === 1) {
