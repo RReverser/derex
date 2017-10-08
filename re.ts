@@ -14,15 +14,12 @@ function factory<R extends TypedRecord<string, any>>(type: R['type']) {
 	return (body: R['body']) => inner({ body }) as R;
 }
 
-export type Re = Chars | None | Empty | Concat | Kleene | Or | And | Not;
+export type Re = Chars | Empty | Concat | Kleene | Or | And | Not;
 
 export type Class = Set<number>;
 
 export interface Chars extends TypedRecord<'Chars', Class> {}
 const Chars = factory<Chars>('Chars');
-
-export interface None extends Record<{ type: 'None' }>, Readonly<{ type: 'None' }> {}
-export const NONE: None = Record({ type: 'None' as 'None' })();
 
 export function chars(allowedChars: string) {
 	return Chars(
@@ -33,6 +30,8 @@ export function chars(allowedChars: string) {
 		})
 	);
 }
+
+export const NONE = Chars(Set());
 
 export interface Empty extends Record<{ type: 'Empty' }>, Readonly<{ type: 'Empty' }> {}
 export const EMPTY: Empty = Record({ type: 'Empty' as 'Empty' })();
@@ -45,9 +44,6 @@ export function concat(...regexps: Re[]) {
 
 	for (let re of regexps) {
 		switch (re.type) {
-			case 'None': {
-				return NONE;
-			}
 			case 'Empty': {
 				break;
 			}
@@ -56,6 +52,9 @@ export function concat(...regexps: Re[]) {
 				break;
 			}
 			default: {
+				if (re.equals(NONE)) {
+					return NONE;
+				}
 				newList = newList.push(re);
 				break;
 			}
@@ -78,7 +77,7 @@ const Kleene = factory<Kleene>('Kleene');
 
 export function kleene(body: Re) {
 	if (body.type === 'Empty' || body.type === 'Kleene') return body;
-	if (body.type === 'None') return EMPTY;
+	if (body.equals(NONE)) return EMPTY;
 	return Kleene(body);
 }
 
@@ -91,9 +90,6 @@ export function or(...regexps: Re[]) {
 
 	for (let re of regexps) {
 		switch (re.type) {
-			case 'None': {
-				break;
-			}
 			case 'Chars': {
 				chars = chars.union(re.body);
 				break;
@@ -132,15 +128,15 @@ const And = factory<And>('And');
 
 export function and(...regexps: Re[]) {
 	let newSet = Set<Chars | Empty | Concat | Kleene | Or | Not>();
-	let chars = Set<number>();
+	let chars: Set<number> | undefined;
 
 	for (let re of regexps) {
 		switch (re.type) {
-			case 'None': {
-				return NONE;
-			}
 			case 'Chars': {
-				chars = chars.intersect(re.body);
+				chars = chars === undefined ? re.body : chars.intersect(re.body);
+				if (chars.isEmpty()) {
+					return NONE;
+				}
 				break;
 			}
 			case 'And': {
@@ -156,7 +152,7 @@ export function and(...regexps: Re[]) {
 		}
 	}
 
-	if (!chars.isEmpty()) {
+	if (chars !== undefined) {
 		newSet = newSet.add(Chars(chars));
 	}
 
@@ -171,8 +167,7 @@ export function and(...regexps: Re[]) {
 	return And(newSet);
 }
 
-export interface Not
-	extends TypedRecord<'Not', None | Chars | Empty | Concat | Kleene | Or | And> {}
+export interface Not extends TypedRecord<'Not', Chars | Empty | Concat | Kleene | Or | And> {}
 const Not = factory<Not>('Not');
 
 export function not(body: Re) {

@@ -27,10 +27,12 @@ export class Derivatives {
 	static fromRe(re: Re): Derivatives {
 		switch (re.type) {
 			case 'Chars': {
-				return new Derivatives(Map.of(EMPTY, re.body), NONE);
+				return Derivatives.fromMutations(add => {
+					add(re.body, EMPTY);
+					return NONE;
+				});
 			}
 
-			case 'None':
 			case 'Empty': {
 				return new Derivatives(Map(), NONE);
 			}
@@ -70,7 +72,6 @@ export class Derivatives {
 
 function isNullable(re: Re): boolean {
 	switch (re.type) {
-		case 'None':
 		case 'Chars': {
 			return false;
 		}
@@ -107,7 +108,9 @@ function combine(v: Seq.Indexed<Derivatives>, f: (...regexps: Re[]) => Re): Deri
 				return NONE;
 			}
 
-			if (v.isEmpty()) {
+			let first = v.first();
+
+			if (first === undefined) {
 				if (inclusive) {
 					add(chars, re);
 					return NONE;
@@ -116,7 +119,6 @@ function combine(v: Seq.Indexed<Derivatives>, f: (...regexps: Re[]) => Re): Deri
 				}
 			}
 
-			let first = v.first()!;
 			let rest = v.rest();
 
 			let allChars = Set<number>();

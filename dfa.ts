@@ -1,5 +1,5 @@
 import { Map } from 'immutable';
-import { Re, Class } from './re';
+import { Re, Class, NONE } from './re';
 import { Derivatives } from './derivatives';
 
 export type Transitions = Map<number, Class | null>;
@@ -11,7 +11,7 @@ export function toDfa(re: Re): Dfa {
 
 	return Map<number, Transitions>().withMutations(dfa => {
 		(function getIndex(re: Re): number {
-			if (re.type === 'None') {
+			if (re.equals(NONE)) {
 				return -1;
 			}
 
