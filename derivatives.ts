@@ -1,5 +1,5 @@
 import { Set, Collection, Seq, Map } from 'immutable';
-import { Re, NONE, Class, EMPTY, NOT_NONE, or, concat, not, and } from './re';
+import { Re, NONE, Class, EMPTY, or, concat, not, and } from './re';
 
 export class Derivatives {
 	private constructor(public items: Map<Re, Class>, public rest: Re) {}
@@ -44,7 +44,7 @@ export class Derivatives {
 			}
 
 			case 'And': {
-				return combine(re.body.valueSeq().map(Derivatives.fromRe), NOT_NONE, and);
+				return combine(re.body.valueSeq().map(Derivatives.fromRe), and);
 			}
 
 			case 'Concat': {
@@ -57,13 +57,12 @@ export class Derivatives {
 								concat(re2, ...re.body.valueSeq().skip(i + 1))
 							)
 						),
-					NONE,
 					or
 				);
 			}
 
 			case 'Or': {
-				return combine(re.body.valueSeq().map(Derivatives.fromRe), NONE, or);
+				return combine(re.body.valueSeq().map(Derivatives.fromRe), or);
 			}
 		}
 	}
@@ -96,11 +95,7 @@ function isNullable(re: Re): boolean {
 	}
 }
 
-function combine(
-	v: Seq.Indexed<Derivatives>,
-	initial: Re,
-	f: (prev: Re, cur: Re) => Re
-): Derivatives {
+function combine(v: Seq.Indexed<Derivatives>, f: (...regexps: Re[]) => Re): Derivatives {
 	return Derivatives.fromMutations(add =>
 		(function go(
 			v: Seq.Indexed<Derivatives>,
@@ -143,6 +138,6 @@ function combine(
 				inclusive ? chars.subtract(allChars) : chars.union(allChars),
 				f(re, first.rest)
 			);
-		})(v, false, Set(), initial)
+		})(v, false, Set(), f())
 	);
 }

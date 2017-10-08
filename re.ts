@@ -161,7 +161,7 @@ export function and(...regexps: Re[]) {
 	}
 
 	if (newSet.size === 0) {
-		return NONE;
+		return NOT_NONE;
 	}
 
 	if (newSet.size === 1) {
