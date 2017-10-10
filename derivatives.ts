@@ -2,7 +2,7 @@ import { Set, Collection, Seq, Map, Stack } from 'immutable';
 import { Re, NONE, Class, EMPTY, or, concat, not, and } from './re';
 
 export class Derivatives {
-	private constructor(public items: Map<Re, Class>, public rest: Re) {}
+	private constructor(public readonly items: Map<Re, Class>, public readonly rest: Re) {}
 
 	static fromMutations(f: (add: (chars: Class, re: Re) => void) => Re): Derivatives {
 		let rest: Re = NONE;
