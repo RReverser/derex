@@ -69,7 +69,7 @@ export class Derivatives {
 	}
 }
 
-function isNullable(re: Re): boolean {
+export function isNullable(re: Re): boolean {
 	switch (re.type) {
 		case 'Chars': {
 			return false;
@@ -90,7 +90,7 @@ function isNullable(re: Re): boolean {
 		}
 
 		case 'Not': {
-			return !isNullable(re);
+			return !isNullable(re.body);
 		}
 	}
 }

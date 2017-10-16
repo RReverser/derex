@@ -34,8 +34,7 @@ function numberLit(value: number): Literal | UnaryExpression {
 	}
 	return {
 		type: 'Literal',
-		value,
-		raw: value.toString()
+		value
 	};
 }
 
@@ -59,7 +58,9 @@ function transitionsToAst(transitions: Transitions): SwitchStatement {
 						trailingComments: [
 							{
 								type: 'Block',
-								value: ` '${String.fromCharCode(ch)}'`
+								value: ` ${ch !== -1
+									? JSON.stringify(String.fromCharCode(ch))
+									: 'final'} `
 							}
 						]
 					}),

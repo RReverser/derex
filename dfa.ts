@@ -1,6 +1,6 @@
-import { Map } from 'immutable';
-import { Re, Class, NONE } from './re';
-import { Derivatives } from './derivatives';
+import { Map, Set } from 'immutable';
+import { Re, Class, NONE, EMPTY } from './re';
+import { Derivatives, isNullable } from './derivatives';
 
 export type Transitions = Map<number, Class | null>;
 
@@ -38,6 +38,13 @@ export function toDfa(re: Re): Dfa {
 					}
 
 					map.set(getIndex(derivatives.rest), null);
+
+					let finalRe = getIndex(isNullable(re) ? EMPTY : NONE);
+					let existingClass = map.get(finalRe, Set<number>());
+
+					if (existingClass !== null) {
+						map.set(finalRe, existingClass.add(-1));
+					}
 				})
 			);
 
