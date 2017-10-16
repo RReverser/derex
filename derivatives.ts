@@ -1,4 +1,4 @@
-import { Set, Collection, Seq, Map } from 'immutable';
+import { Set, Collection, Seq, Map, Stack } from 'immutable';
 import { Re, NONE, Class, EMPTY, or, concat, not, and } from './re';
 
 export class Derivatives {
@@ -96,50 +96,53 @@ function isNullable(re: Re): boolean {
 	}
 }
 
-function combine(v: Seq.Indexed<Derivatives>, f: (...regexps: Re[]) => Re): Derivatives {
+function combine(
+	derivativesSeq: Seq.Indexed<Derivatives>,
+	f: (...regexps: Re[]) => Re
+): Derivatives {
 	return Derivatives.fromMutations(add =>
-		(function go(
-			v: Seq.Indexed<Derivatives>,
+		(function recurse(
+			derivativesSeq: Stack<Derivatives>,
 			inclusive: boolean,
-			chars: Set<number>,
+			prevChars: Set<number>,
 			re: Re
 		): Re {
-			if (inclusive && chars.isEmpty()) {
+			if (inclusive && prevChars.isEmpty()) {
 				return NONE;
 			}
 
-			let first = v.first();
+			let first = derivativesSeq.first();
 
 			if (first === undefined) {
 				if (inclusive) {
-					add(chars, re);
+					add(prevChars, re);
 					return NONE;
 				} else {
 					return re;
 				}
 			}
 
-			let rest = v.rest();
+			derivativesSeq = derivativesSeq.rest();
 
 			let allChars = Set<number>();
 
 			for (let [subRe, subChars] of first.items) {
 				allChars = allChars.union(subChars);
 
-				go(
-					rest,
+				recurse(
+					derivativesSeq,
 					true,
-					inclusive ? subChars.intersect(chars) : subChars.subtract(chars),
+					inclusive ? subChars.intersect(prevChars) : subChars.subtract(prevChars),
 					f(re, subRe)
 				);
 			}
 
-			return go(
-				rest,
+			return recurse(
+				derivativesSeq,
 				inclusive,
-				inclusive ? chars.subtract(allChars) : chars.union(allChars),
+				inclusive ? prevChars.subtract(allChars) : prevChars.union(allChars),
 				f(re, first.rest)
 			);
-		})(v, false, Set(), f())
+		})(derivativesSeq.toStack(), false, Set(), f())
 	);
 }
