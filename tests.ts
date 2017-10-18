@@ -15,7 +15,7 @@ function assertEqual<T extends ValueObject>(a: T, b: T) {
 
 assertEqual(re.chars('xyxxzy').body, Set.of(120, 121, 122));
 
-assertEqual(re.or(), re.EMPTY);
+assertEqual(re.or(), re.NONE);
 assertEqual(re.or(re.NONE), re.NONE);
 assertEqual(re.or(re.EMPTY), re.EMPTY);
 assertEqual(re.or(re.EMPTY, re.EMPTY), re.EMPTY);
