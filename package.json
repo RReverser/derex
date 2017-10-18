@@ -4,7 +4,8 @@
   "description": "Derivatives-based regexp to DFA compiler",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p .",
+    "test": "node -r source-map-support/register dist/tests.js"
   },
   "keywords": [
     "regex",
@@ -22,6 +23,7 @@
     "@types/escodegen": "0.0.6",
     "@types/estree": "0.0.38",
     "@types/node": "^8.0.33",
+    "source-map-support": "^0.5.0",
     "typescript": "^2.5.3"
   }
 }
