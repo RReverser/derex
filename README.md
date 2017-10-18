@@ -13,3 +13,59 @@ Contents:
  - `codegen.ts`: takes a DFA and generates a pure function that can return the next state based on previous one and a char code.
  - `tests.ts`: simple tests (incomplete)
  - `index.ts`: simple example for manual testing
+
+------
+
+Current example in `index.ts` uses following regular expression:
+
+```js
+let sampleRe = or(
+	concat(chars('a'), chars('c'), chars('1')),
+	concat(chars('a'), chars('d'), chars('1')),
+	concat(kleene(chars('b')), chars('1'))
+);
+```
+
+and the produced function is:
+
+```js
+function nextState(state, char) {
+    switch (state) {
+    case 2:
+        switch (char) {
+        case 49    /* "1" */:
+            return -2;    // success
+        default:
+            return -1;    // error
+        }
+    case 1:
+        switch (char) {
+        case 100    /* "d" */:
+        case 99    /* "c" */:
+            return 2;
+        default:
+            return -1;    // error
+        }
+    case 3:
+        switch (char) {
+        case 98    /* "b" */:
+            return 3;
+        case 49    /* "1" */:
+            return -2;    // success
+        default:
+            return -1;    // error
+        }
+    case 0:
+        switch (char) {
+        case 97    /* "a" */:
+            return 1;
+        case 98    /* "b" */:
+            return 3;
+        case 49    /* "1" */:
+            return -2;    // success
+        default:
+            return -1;    // error
+        }
+    }
+}
+```
