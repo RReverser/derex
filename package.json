@@ -1,29 +1,24 @@
 {
-  "name": "derex",
-  "version": "1.0.0",
-  "description": "Derivatives-based regexp to DFA compiler",
-  "main": "index.js",
-  "scripts": {
-    "build": "tsc -p .",
-    "test": "node -r source-map-support/register dist/tests.js"
-  },
-  "keywords": [
-    "regex",
-    "regexp",
-    "derivatives",
-    "dfa"
-  ],
-  "author": "Ingvar Stepanyan <me@rreverser.com> (https://rreverser.com/)",
-  "license": "MIT",
-  "dependencies": {
-    "escodegen": "^1.9.0",
-    "immutable": "^4.0.0-rc.7"
-  },
-  "devDependencies": {
-    "@types/escodegen": "0.0.6",
-    "@types/estree": "0.0.38",
-    "@types/node": "^8.0.33",
-    "source-map-support": "^0.5.0",
-    "typescript": "^2.5.3"
-  }
+	"name": "derex",
+	"version": "1.0.0",
+	"description": "Derivatives-based regexp to DFA compiler",
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "tsc -p .",
+		"test": "node -r source-map-support/register dist/tests.js"
+	},
+	"keywords": ["regex", "regexp", "derivatives", "dfa"],
+	"author": "Ingvar Stepanyan <me@rreverser.com> (https://rreverser.com/)",
+	"license": "MIT",
+	"dependencies": {
+		"escodegen": "^1.9.0",
+		"immutable": "^4.0.0-rc.7"
+	},
+	"devDependencies": {
+		"@types/escodegen": "0.0.6",
+		"@types/estree": "0.0.38",
+		"@types/node": "^8.0.33",
+		"source-map-support": "^0.5.0",
+		"typescript": "^2.5.3"
+	}
 }

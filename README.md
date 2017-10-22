@@ -12,11 +12,11 @@ Contents:
  - `dfa.ts`: takes a regular expression and recursively takes derivatives over all possible character classes to obtain a DFA.
  - `codegen.ts`: takes a DFA and generates a pure function that can return the next state based on previous one and a char code.
  - `tests.ts`: simple tests (incomplete)
- - `index.ts`: simple example for manual testing
+ - `index.ts`: reexports everything from `re`, `dfa` and `codegen` modules
 
 ------
 
-Current example in `index.ts` uses following regular expression:
+For example, the following regular expression:
 
 ```js
 let sampleRe = or(
@@ -26,7 +26,7 @@ let sampleRe = or(
 );
 ```
 
-and the produced function is:
+produces a following function:
 
 ```js
 function nextState(state, char) {

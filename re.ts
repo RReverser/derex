@@ -1,11 +1,11 @@
 import { Set, Record, List } from 'immutable';
 
-interface TypedBody<S extends string, B> {
+export interface TypedBody<S extends string, B> {
 	type: S;
 	body: B;
 }
 
-interface TypedRecord<S extends string, B>
+export interface TypedRecord<S extends string, B>
 	extends Record<TypedBody<S, B>>,
 		Readonly<TypedBody<S, B>> {}
 
