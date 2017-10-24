@@ -36,11 +36,12 @@ export const NONE = Chars(Set());
 export interface Empty extends Record<{ type: 'Empty' }>, Readonly<{ type: 'Empty' }> {}
 export const EMPTY: Empty = Record({ type: 'Empty' as 'Empty' })();
 
-export interface Concat extends TypedRecord<'Concat', List<Chars | Kleene | Or | And | Not>> {}
+export type ConcatItem = Chars | Kleene | Or | And | Not;
+export interface Concat extends TypedRecord<'Concat', List<ConcatItem>> {}
 const Concat = factory<Concat>('Concat');
 
 export function concat(...regexps: Re[]) {
-	let newList = List<Chars | Kleene | Or | And | Not>();
+	let newList = List<ConcatItem>();
 
 	for (let re of regexps) {
 		switch (re.type) {
@@ -72,7 +73,8 @@ export function concat(...regexps: Re[]) {
 	return Concat(newList);
 }
 
-export interface Kleene extends TypedRecord<'Kleene', Chars | Concat | Or | And | Not> {}
+export type KleeneBody = Chars | Concat | Or | And | Not;
+export interface Kleene extends TypedRecord<'Kleene', KleeneBody> {}
 const Kleene = factory<Kleene>('Kleene');
 
 export function kleene(body: Re) {
@@ -81,11 +83,12 @@ export function kleene(body: Re) {
 	return Kleene(body);
 }
 
-export interface Or extends TypedRecord<'Or', Set<Chars | Empty | Concat | Kleene | And | Not>> {}
+export type OrItem = Chars | Empty | Concat | Kleene | And | Not;
+export interface Or extends TypedRecord<'Or', Set<OrItem>> {}
 const Or = factory<Or>('Or');
 
 export function or(...regexps: Re[]) {
-	let newSet = Set<Chars | Empty | Concat | Kleene | And | Not>();
+	let newSet = Set<OrItem>();
 	let chars = Set<number>();
 
 	for (let re of regexps) {
@@ -123,11 +126,12 @@ export function or(...regexps: Re[]) {
 	return Or(newSet);
 }
 
-export interface And extends TypedRecord<'And', Set<Chars | Empty | Concat | Kleene | Or | Not>> {}
+export type AndItem = Chars | Empty | Concat | Kleene | Or | Not;
+export interface And extends TypedRecord<'And', Set<AndItem>> {}
 const And = factory<And>('And');
 
 export function and(...regexps: Re[]) {
-	let newSet = Set<Chars | Empty | Concat | Kleene | Or | Not>();
+	let newSet = Set<AndItem>();
 	let chars: Set<number> | undefined;
 
 	for (let re of regexps) {
@@ -167,7 +171,8 @@ export function and(...regexps: Re[]) {
 	return And(newSet);
 }
 
-export interface Not extends TypedRecord<'Not', Chars | Empty | Concat | Kleene | Or | And> {}
+export type NotBody = Chars | Empty | Concat | Kleene | Or | And;
+export interface Not extends TypedRecord<'Not', NotBody> {}
 const Not = factory<Not>('Not');
 
 export function not(body: Re) {
