@@ -1,21 +1,21 @@
-import { Set, Collection, Seq, Map, Stack } from 'immutable';
+import { Set, Collection, Seq, Map, Stack, List } from 'immutable';
 import { Re, NONE, Class, EMPTY, or, concat, not, and } from './re';
 
-export class Derivatives {
-	private constructor(public readonly items: Map<Re, Class>, public readonly rest: Re) {}
+export class Derivatives<T> {
+	private constructor(public readonly items: Map<T, Class>, public readonly rest: T) {}
 
-	static fromMutations(f: (add: (chars: Class, re: Re) => void) => Re): Derivatives {
-		let rest: Re = NONE;
+	static fromMutations<T>(f: (add: (chars: Class, re: T) => void) => T): Derivatives<T> {
+		let rest: T;
 		return new Derivatives(
-			Map<Re, Class>().withMutations(map => {
+			Map<T, Class>().withMutations(map => {
 				rest = f((chars, re) => map.update(re, Set(), prev => chars.union(prev)));
 				map.delete(rest);
 			}),
-			rest
+			rest!
 		);
 	}
 
-	private map(f: (re: Re) => Re): Derivatives {
+	private map<T2>(f: (re: T) => T2): Derivatives<T2> {
 		return Derivatives.fromMutations(add => {
 			for (let [re, chars] of this.items) {
 				add(chars, f(re));
@@ -24,7 +24,7 @@ export class Derivatives {
 		});
 	}
 
-	static fromRe(re: Re): Derivatives {
+	static fromRe(re: Re): Derivatives<Re> {
 		switch (re.type) {
 			case 'Chars': {
 				return Derivatives.fromMutations(add => {
@@ -67,6 +67,12 @@ export class Derivatives {
 			}
 		}
 	}
+
+	static fromVector(re: List<Re>): Derivatives<List<Re>> {
+		return combine(re.valueSeq().map(Derivatives.fromRe), (prev = List(), ...regexps) =>
+			prev.concat(regexps)
+		);
+	}
 }
 
 export function isNullable(re: Re): boolean {
@@ -95,30 +101,32 @@ export function isNullable(re: Re): boolean {
 	}
 }
 
-function combine(
-	derivativesSeq: Seq.Indexed<Derivatives>,
-	f: (...regexps: Re[]) => Re
-): Derivatives {
-	return Derivatives.fromMutations(add =>
+function combine<T, T2>(
+	derivativesSeq: Seq.Indexed<Derivatives<T>>,
+	f: (acc?: T2, ...items: T[]) => T2
+): Derivatives<T2> {
+	return Derivatives.fromMutations(add => {
+		let rest: T2;
+
 		(function recurse(
-			derivativesSeq: Stack<Derivatives>,
+			derivativesSeq: Stack<Derivatives<T>>,
 			inclusive: boolean,
 			prevChars: Set<number>,
-			re: Re
-		): Re {
+			acc: T2
+		): void {
 			if (inclusive && prevChars.isEmpty()) {
-				return NONE;
+				return;
 			}
 
 			let first = derivativesSeq.first();
 
 			if (first === undefined) {
 				if (inclusive) {
-					add(prevChars, re);
-					return NONE;
+					add(prevChars, acc);
 				} else {
-					return re;
+					rest = acc;
 				}
+				return;
 			}
 
 			derivativesSeq = derivativesSeq.rest();
@@ -132,16 +140,18 @@ function combine(
 					derivativesSeq,
 					true,
 					inclusive ? subChars.intersect(prevChars) : subChars.subtract(prevChars),
-					f(re, subRe)
+					f(acc, subRe)
 				);
 			}
 
-			return recurse(
+			recurse(
 				derivativesSeq,
 				inclusive,
 				inclusive ? prevChars.subtract(allChars) : prevChars.union(allChars),
-				f(re, first.rest)
+				f(acc, first.rest)
 			);
-		})(derivativesSeq.toStack(), false, Set(), f())
-	);
+		})(derivativesSeq.toStack(), false, Set(), f());
+
+		return rest!;
+	});
 }
