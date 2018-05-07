@@ -3,7 +3,7 @@
 
 This is a toy project to learn and investigate the alternative approach to building DFA from regular expressions that uses regular expression derivatives instead of NFA as an intermediate representation.
 
-It uses Immutable.js to easily maintain certain invariants required by the approach (see https://www.cl.cam.ac.uk/~so294/documents/jfp09.pdf for more details).
+It uses Immutable.js to easily maintain certain invariants required by the approach (see https://www.cs.kent.ac.uk/people/staff/sao/documents/jfp09.pdf for more details).
 
 Contents:
 
